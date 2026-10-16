@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Editor de posts</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/style.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="sidebar-head">
+          <a class="brand" href="/" aria-label="Editor de posts">M</a>
+          <div class="brand-copy"><strong>Matheus</strong><small>Editor de posts</small></div>
+        </div>
+        <nav class="section-nav" aria-label="Seções"><a class="active" href="/" aria-current="page">Posts</a><a href="/photos">Fotos</a></nav>
+        <button id="new-post" class="new-button" type="button">Novo post</button>
+        <label class="search-wrap"><span>Buscar posts</span><input id="search" type="search" placeholder="Título ou tag" /></label>
+        <div class="list-head"><span>POSTS</span><span id="post-count">0 posts</span></div>
+        <nav id="post-list" class="post-list" aria-label="Posts"></nav>
+        <div class="sidebar-foot">
+          <span class="folder-label">Pasta dos posts</span>
+          <span id="folder-path" class="folder-path">Nenhuma pasta selecionada</span>
+          <div class="folder-actions">
+            <button id="choose-folder" type="button">Escolher pasta</button>
+            <button id="manual-folder" type="button">Informar caminho</button>
+          </div>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div class="mobile-brand">Editor de posts</div>
+          <div class="crumb"><span id="crumb-title">Selecione um post</span></div>
+          <div class="top-actions">
+            <span id="save-state" class="save-state" role="status" aria-live="polite">Pronto</span>
+            <button id="save-post" class="save-button" type="button" disabled>Salvar <span class="shortcut">Ctrl S</span></button>
+          </div>
+        </header>
+
+        <div id="empty-state" class="empty-state">
+          <h1 id="empty-title">Seus posts</h1>
+          <p id="empty-text">Escolha um post na lista ou crie um novo.</p>
+          <button id="empty-new" class="text-button" type="button">Criar post</button>
+          <button id="empty-choose" class="text-button" type="button" hidden>Escolher pasta</button>
+        </div>
+
+        <div id="editor-view" class="editor-view" hidden>
+          <div class="editor-grid">
+            <section class="writing-area" aria-label="Escrita do post">
+              <div class="writing-topline"><span id="post-type">RASCUNHO</span><a id="view-post" href="#" target="_blank" rel="noopener" hidden>Abrir no blog</a></div>
+              <input id="title" class="title-input" type="text" placeholder="Título do post" maxlength="200" aria-label="Título" />
+              <textarea id="description" class="description-input" rows="2" placeholder="Descrição curta do post" aria-label="Descrição"></textarea>
+              <div class="writing-divider"></div>
+              <div class="editor-controls">
+                <div class="mode-switch" role="group" aria-label="Modo do editor"><button id="visual-mode" class="active" type="button">Visual</button><button id="markdown-mode" type="button">Markdown</button></div>
+                <div class="editor-tools">
+                  <div id="toolbar" class="toolbar" role="toolbar" aria-label="Formatação">
+                    <button type="button" data-action="bold" title="Negrito"><b>Negrito</b></button>
+                    <button type="button" data-action="italic" title="Itálico"><i>Itálico</i></button>
+                    <button type="button" data-action="h2" title="Título">Título</button>
+                    <button type="button" data-action="h3" title="Subtítulo">Subtítulo</button>
+                    <button type="button" data-action="quote" title="Citação">Citação</button>
+                    <button type="button" data-action="ul" title="Lista">Lista</button>
+                    <button type="button" data-action="link" title="Link">Link</button>
+                  </div>
+                  <button id="insert-image" class="image-action" type="button">Imagem</button>
+                </div>
+              </div>
+              <div id="visual-editor" class="visual-editor" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Comece a escrever aqui..."></div>
+              <textarea id="markdown-editor" class="markdown-editor" spellcheck="false" aria-label="Markdown do post" hidden></textarea>
+              <p class="editor-hint"><span id="word-count">0 palavras</span><span aria-hidden="true"> · </span>Salve com Ctrl+S.</p>
+            </section>
+
+            <aside class="inspector" aria-label="Dados do post">
+              <div class="inspector-head"><h2>Dados do post</h2></div>
+              <label class="field"><span>Data</span><input id="pub-date" type="date" /></label>
+              <label class="field"><span>Tags</span><input id="tags" type="text" placeholder="dev, music, dnd" /><small>Separe por vírgulas.</small></label>
+              <label class="field"><span>Imagem de capa</span><input id="hero-image" type="text" placeholder="URL ou caminho da imagem" /></label>
+              <label class="draft-toggle"><span><strong>Rascunho</strong><small>Não aparece nas páginas do blog.</small></span><input id="hidden" type="checkbox" /><span class="switch" aria-hidden="true"></span></label>
+              <div class="file-note"><span>ARQUIVO</span><code id="file-name">Ainda não criado</code></div>
+            </aside>
+          </div>
+        </div>
+      </main>
+    </div>
+    <dialog id="image-dialog" class="image-dialog" aria-labelledby="image-dialog-title">
+      <form id="image-form">
+        <h2 id="image-dialog-title">Inserir imagem</h2>
+        <p>Use uma URL ou um caminho do blog. A imagem será inserida na posição do cursor.</p>
+        <label class="field"><span>URL ou caminho</span><input id="image-source" type="text" required spellcheck="false" placeholder="/images/foto.jpg ou https://…" /></label>
+        <p class="image-path-hint">Rotas iniciadas por / usam a pasta public. Caminhos como ./foto.jpg são relativos ao post.</p>
+        <label class="field"><span>Texto alternativo</span><input id="image-alt" type="text" required placeholder="Descreva a imagem" /></label>
+        <p id="image-error" class="image-error" role="alert" hidden></p>
+        <div class="image-dialog-actions"><button id="image-cancel" type="button">Cancelar</button><button id="image-confirm" type="submit">Inserir imagem</button></div>
+      </form>
+    </dialog>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>

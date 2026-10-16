@@ -1,0 +1,9 @@
+{
+  "name": "mth-blog-editor",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun run server.ts",
+    "build": "bun run build.ts"
+  }
+}

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fotos - Editor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/photo.css" />
+    <script type="module" src="/photo.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar photo-sidebar">
+        <div class="sidebar-head">
+          <a class="brand" href="/" aria-label="Editor">M</a>
+          <div class="brand-copy"><strong>Matheus</strong><small>Editor de posts</small></div>
+        </div>
+        <nav class="section-nav" aria-label="Seções"><a href="/">Posts</a><a class="active" href="/photos" aria-current="page">Fotos</a></nav>
+        <div class="photo-sidebar-copy">Importe uma foto para a galeria do blog.</div>
+        <div class="sidebar-foot">
+          <span class="folder-label">Pasta da galeria</span>
+          <span id="photo-folder-path" class="folder-path">Nenhuma pasta selecionada</span>
+          <div class="folder-actions">
+            <button id="photo-choose-folder" type="button">Escolher pasta</button>
+            <button id="photo-manual-folder" type="button">Informar caminho</button>
+          </div>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div class="mobile-brand">Editor de fotos</div>
+          <div class="crumb"><span>Nova foto</span></div>
+          <div class="top-actions"><span id="photo-save-state" class="save-state">Pronto</span><button id="photo-save" class="save-button" type="button" disabled>Salvar foto</button></div>
+        </header>
+
+        <div class="photo-layout">
+          <section class="photo-media" aria-label="Imagem escolhida">
+            <div class="photo-heading"><h1>Nova foto</h1><p>Escolha a imagem e preencha os dados.</p></div>
+            <input id="photo-file" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" hidden />
+            <button id="photo-choose-image" class="photo-select" type="button">Escolher imagem</button>
+            <div class="photo-preview"><span id="photo-placeholder">Nenhuma imagem escolhida</span><img id="photo-image" alt="Prévia da foto escolhida" hidden /></div>
+            <div class="photo-info"><strong id="photo-file-info">Nenhum arquivo</strong><span id="photo-exif-info">Os dados da câmera aparecerão aqui.</span><a id="photo-map" href="#" target="_blank" rel="noopener" hidden>Ver no mapa</a></div>
+          </section>
+
+          <section class="photo-fields" aria-label="Dados da foto">
+            <label class="field"><span>Título</span><input id="photo-title" type="text" maxlength="200" /></label>
+            <label class="field"><span>Data</span><input id="photo-date" type="date" /></label>
+            <label class="field"><span>Texto alternativo</span><input id="photo-alt" type="text" placeholder="Descreva o que aparece na imagem" /></label>
+            <label class="field"><span>Legenda</span><textarea id="photo-caption" rows="4" placeholder="Texto exibido com a foto"></textarea></label>
+            <label class="field"><span>Tags</span><input id="photo-tags" type="text" placeholder="viagem, paisagem" /><small>Separe por vírgulas.</small></label>
+            <div class="photo-location">
+              <label class="location-option"><input id="photo-include-location" type="checkbox" disabled /><span>Publicar localização exata</span></label>
+              <label class="field"><span>Nome do lugar</span><input id="photo-place" type="text" disabled placeholder="Exemplo: São Paulo" /></label>
+              <p>A cópia publicada não guarda dados da câmera. A localização só aparece no post se você marcar a opção acima.</p>
+            </div>
+            <p id="photo-result" class="photo-result" role="status" aria-live="polite"></p>
+          </section>
+        </div>
+      </main>
+    </div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>

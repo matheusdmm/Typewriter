@@ -1,0 +1,17 @@
+node_modules/
+
+/MTH-Editor.exe
+/launcher/MTH-Editor-Server.exe
+/editor-settings.json
+.env
+.env.*
+!.env.example
+
+*.log
+coverage/
+*~
+*.swp
+*.swo
+
+.DS_Store
+Thumbs.db
