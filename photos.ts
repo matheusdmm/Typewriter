@@ -64,11 +64,14 @@ export async function savePhoto(dir: string, form: FormData) {
     try {
       const input = JSON.parse(rawLocation);
       const name = typeof input.name === 'string' ? input.name.trim() : '';
+      for (const value of [input.latitude, input.longitude]) {
+        if (typeof value !== 'number' && (typeof value !== 'string' || !value.trim())) throw new Error();
+      }
       const latitude = Number(input.latitude);
       const longitude = Number(input.longitude);
       if (!name || !Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) throw new Error();
       location = { name, latitude, longitude };
-    } catch { throw new Error('Informe um nome válido para o local.'); }
+    } catch { throw new Error('Informe o nome do lugar, latitude entre -90 e 90 e longitude entre -180 e 180.'); }
   }
 
   const imageName = `${slug}${extension}`;

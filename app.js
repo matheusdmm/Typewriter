@@ -449,6 +449,22 @@ async function submitImage(event) {
   }
 }
 
+const inspectorToggle = $('#toggle-inspector');
+const inspector = $('#post-inspector');
+function setInspectorCollapsed(collapsed) {
+  inspector.hidden = collapsed;
+  $('.editor-grid').classList.toggle('inspector-collapsed', collapsed);
+  inspectorToggle.setAttribute('aria-expanded', String(!collapsed));
+  inspectorToggle.textContent = collapsed ? 'Mostrar dados do post' : 'Ocultar dados do post';
+}
+try {
+  setInspectorCollapsed(localStorage.getItem('mth-editor-inspector-collapsed') === 'true');
+} catch { /* O painel continua disponível quando o armazenamento está bloqueado. */ }
+inspectorToggle.addEventListener('click', () => {
+  setInspectorCollapsed(!inspector.hidden);
+  try { localStorage.setItem('mth-editor-inspector-collapsed', String(inspector.hidden)); } catch { /* Preferência válida nesta sessão. */ }
+});
+
 $('#new-post').addEventListener('click', newPost);
 $('#empty-new').addEventListener('click', newPost);
 els.emptyChoose.addEventListener('click', chooseFolder);

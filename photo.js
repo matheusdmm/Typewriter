@@ -6,6 +6,8 @@ const els = {
   fileInfo: $('#photo-file-info'), exifInfo: $('#photo-exif-info'), map: $('#photo-map'),
   title: $('#photo-title'), date: $('#photo-date'), alt: $('#photo-alt'), caption: $('#photo-caption'),
   tags: $('#photo-tags'), includeLocation: $('#photo-include-location'), place: $('#photo-place'),
+  locationFields: $('#photo-location-fields'), locationHint: $('#photo-location-hint'),
+  latitude: $('#photo-latitude'), longitude: $('#photo-longitude'),
   folderPath: $('#photo-folder-path'), chooseFolder: $('#photo-choose-folder'), manualFolder: $('#photo-manual-folder'),
   save: $('#photo-save'), state: $('#photo-save-state'), result: $('#photo-result'), toast: $('#toast'),
 };
@@ -83,6 +85,25 @@ function titleFromName(name) {
   return words ? words[0].toLocaleUpperCase('pt-BR') + words.slice(1) : '';
 }
 
+function readCoordinates() {
+  const values = [els.latitude, els.longitude].map((input) => input.value.trim().replace(',', '.'));
+  if (values.some((value) => !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(value))) return null;
+  const [latitude, longitude] = values.map(Number);
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return null;
+  return { latitude, longitude };
+}
+
+function updateMap() {
+  const coordinates = els.includeLocation.checked ? readCoordinates() : gps;
+  els.map.hidden = !coordinates;
+  if (coordinates) {
+    const { latitude, longitude } = coordinates;
+    els.map.href = `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=14/${latitude}/${longitude}`;
+  } else {
+    els.map.removeAttribute('href');
+  }
+}
+
 async function loadImage(file) {
   if (file.size > 80_000_000) throw new Error('Escolha uma imagem de até 80 MB.');
   const buffer = await file.arrayBuffer();
@@ -102,8 +123,6 @@ async function loadImage(file) {
   els.fileInfo.textContent = `${file.name}, ${size.width} por ${size.height} pixels`;
   const gpsText = gps ? `${gps.latitude.toFixed(6)}, ${gps.longitude.toFixed(6)}` : 'não encontrado';
   els.exifInfo.textContent = `Data da câmera: ${metadata.date || 'não encontrada'}. GPS: ${gpsText}.`;
-  els.map.hidden = !gps;
-  if (gps) els.map.href = `https://www.openstreetmap.org/?mlat=${gps.latitude}&mlon=${gps.longitude}#map=14/${gps.latitude}/${gps.longitude}`;
 
   const title = titleFromName(file.name);
   els.title.value = title;
@@ -112,9 +131,16 @@ async function loadImage(file) {
   els.caption.value = '';
   els.tags.value = '';
   els.includeLocation.checked = false;
-  els.includeLocation.disabled = !gps;
+  els.includeLocation.disabled = false;
+  els.locationFields.hidden = true;
+  els.locationFields.disabled = true;
+  els.locationHint.textContent = gps
+    ? 'Coordenadas encontradas na foto. Você pode conferi-las e ajustá-las antes de publicar.'
+    : 'Esta foto não tem GPS. Marque a opção acima para informar a localização manualmente.';
   els.place.value = '';
-  els.place.disabled = true;
+  els.latitude.value = gps ? String(gps.latitude) : '';
+  els.longitude.value = gps ? String(gps.longitude) : '';
+  updateMap();
   markDirty();
 }
 
@@ -145,7 +171,14 @@ async function savePhoto() {
   const alt = els.alt.value.trim();
   const caption = els.caption.value.trim();
   if (!title || !date || !alt || !caption) { notice('Preencha título, data, texto alternativo e legenda.', true); return; }
-  if (els.includeLocation.checked && (!gps || !els.place.value.trim())) { notice('Informe o nome do lugar.', true); return; }
+  let location = null;
+  if (els.includeLocation.checked) {
+    const name = els.place.value.trim();
+    if (!name) { notice('Informe o nome do lugar.', true); els.place.focus(); return; }
+    const coordinates = readCoordinates();
+    if (!coordinates) { notice('Informe latitude entre -90 e 90 e longitude entre -180 e 180.', true); return; }
+    location = { name, ...coordinates };
+  }
 
   saving = true;
   els.save.disabled = true;
@@ -160,7 +193,7 @@ async function savePhoto() {
     form.append('alt', alt);
     form.append('caption', caption);
     form.append('tags', JSON.stringify([...new Set(els.tags.value.split(',').map((tag) => tag.trim()).filter(Boolean))]));
-    if (els.includeLocation.checked) form.append('location', JSON.stringify({ name: els.place.value.trim(), ...gps }));
+    if (location) form.append('location', JSON.stringify(location));
     els.state.textContent = 'Salvando';
     const result = await request('/api/photo/import', { method: 'POST', body: form });
     dirty = false;
@@ -187,7 +220,13 @@ els.file.addEventListener('change', async () => {
 els.chooseFolder.addEventListener('click', chooseFolder);
 els.manualFolder.addEventListener('click', manualFolder);
 els.save.addEventListener('click', savePhoto);
-els.includeLocation.addEventListener('change', () => { els.place.disabled = !els.includeLocation.checked; markDirty(); });
+els.includeLocation.addEventListener('change', () => {
+  els.locationFields.hidden = !els.includeLocation.checked;
+  els.locationFields.disabled = !els.includeLocation.checked;
+  updateMap();
+  markDirty();
+});
+for (const input of [els.latitude, els.longitude]) input.addEventListener('input', () => { updateMap(); markDirty(); });
 for (const input of [els.title, els.date, els.alt, els.caption, els.tags, els.place]) input.addEventListener('input', markDirty);
 document.addEventListener('keydown', (event) => {
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'o') { event.preventDefault(); els.chooseImage.click(); }

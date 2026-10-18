@@ -33,6 +33,52 @@ test('salva imagem e Markdown, rejeita colisão e não publica GPS sem consentim
   expect((await readdir(folder)).sort()).toEqual(['cafe-da-manha.md', 'cafe-da-manha.png']);
 });
 
+function formWithoutGps() {
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg==', 'base64');
+  const form = new FormData();
+  form.set('image', new Blob([png], { type: 'image/png' }), 'foto.png');
+  form.set('sourceName', 'foto.png');
+  form.set('title', 'Local informado');
+  form.set('caption', 'Uma foto sem GPS');
+  form.set('alt', 'Paisagem');
+  form.set('date', '2026-10-18');
+  return { form, png };
+}
+
+test.each([
+  { name: 'São Paulo', latitude: -23.5505, longitude: -46.6333 },
+  { name: 'Linha do Equador', latitude: 0, longitude: 0 },
+  { name: 'Limites', latitude: -90, longitude: 180 },
+])('salva localização manual em foto sem GPS: %j', async (location) => {
+  const folder = await mkdtemp(join(tmpdir(), 'mth-photo-test-'));
+  folders.push(folder);
+  const { form, png } = formWithoutGps();
+  expect(readExif(png.buffer.slice(png.byteOffset, png.byteOffset + png.byteLength)).gps).toBeNull();
+  form.set('location', JSON.stringify(location));
+  const result = await savePhoto(folder, form);
+  const markdown = await readFile(join(folder, result.markdownName), 'utf8');
+  expect(markdown).toContain(`location:\n  name: ${JSON.stringify(location.name)}\n  latitude: ${location.latitude.toFixed(7)}\n  longitude: ${location.longitude.toFixed(7)}`);
+});
+
+test.each([
+  { name: '', latitude: 1, longitude: 2 },
+  { name: 'Local', latitude: 91, longitude: 0 },
+  { name: 'Local', latitude: 0, longitude: -181 },
+  { name: 'Local', latitude: null, longitude: 0 },
+  { name: 'Local', latitude: '', longitude: 0 },
+  { name: 'Local', latitude: ' ', longitude: 0 },
+  { name: 'Local', latitude: false, longitude: 0 },
+  { name: 'Local', latitude: [], longitude: 0 },
+  { name: 'Local', longitude: 0 },
+])('rejeita localização inválida sem criar arquivos: %j', async (location) => {
+  const folder = await mkdtemp(join(tmpdir(), 'mth-photo-test-'));
+  folders.push(folder);
+  const { form } = formWithoutGps();
+  form.set('location', JSON.stringify(location));
+  await expect(savePhoto(folder, form)).rejects.toThrow('latitude entre -90 e 90');
+  expect(await readdir(folder)).toEqual([]);
+});
+
 test('lê data EXIF e ignora dados ausentes', () => {
   const date = '2024:02:29 12:30:00\0';
   const tiff = new Uint8Array(8 + 2 + 12 + 4 + date.length);

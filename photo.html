@@ -54,7 +54,16 @@
             <label class="field"><span>Tags</span><input id="photo-tags" type="text" placeholder="viagem, paisagem" /><small>Separe por vírgulas.</small></label>
             <div class="photo-location">
               <label class="location-option"><input id="photo-include-location" type="checkbox" disabled /><span>Publicar localização exata</span></label>
-              <label class="field"><span>Nome do lugar</span><input id="photo-place" type="text" disabled placeholder="Exemplo: São Paulo" /></label>
+              <p id="photo-location-hint">Escolha uma imagem para adicionar a localização.</p>
+              <fieldset id="photo-location-fields" class="location-fields" disabled hidden>
+                <legend>Localização da foto</legend>
+                <label class="field"><span>Nome do lugar</span><input id="photo-place" type="text" placeholder="Exemplo: São Paulo" /></label>
+                <div class="location-coordinates">
+                  <label class="field"><span>Latitude</span><input id="photo-latitude" type="text" inputmode="decimal" placeholder="-23,5505" aria-describedby="photo-coordinates-help" /></label>
+                  <label class="field"><span>Longitude</span><input id="photo-longitude" type="text" inputmode="decimal" placeholder="-46,6333" aria-describedby="photo-coordinates-help" /></label>
+                </div>
+                <small id="photo-coordinates-help">Use graus decimais, com vírgula ou ponto. Confira o local em “Ver no mapa”.</small>
+              </fieldset>
               <p>A cópia publicada não guarda dados da câmera. A localização só aparece no post se você marcar a opção acima.</p>
             </div>
             <p id="photo-result" class="photo-result" role="status" aria-live="polite"></p>
