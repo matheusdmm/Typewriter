@@ -81,6 +81,9 @@ input::placeholder,textarea::placeholder{color:var(--text-soft);opacity:1}
 .toast{font-size:14px;line-height:1.5;max-width:calc(100vw - 44px)}
 .image-dialog{width:min(500px,calc(100vw - 32px))}
 .image-dialog form>p{font-size:14px;color:var(--text-muted)}
+.editor-dialog .field[hidden]{display:none}
+.editor-dialog h2{font-size:20px;line-height:1.5;margin:0 0 24px}
+.editor-dialog .image-dialog-actions{margin-top:24px}
 .image-dialog .field input{font-size:16px}
 .image-dialog .image-path-hint{font-size:13px}
 .image-dialog-actions button{font-size:14px;min-height:44px}

@@ -199,10 +199,12 @@ function clearPost() {
   renderList();
 }
 
-function confirmLeave() {
+async function confirmLeave() {
   if (saving) { notice('Aguarde o salvamento terminar.'); return false; }
-  return !dirty || window.confirm('Você tem alterações não salvas. Sair deste post?');
+  return !dirty || await window.editorDialogs.confirm('Você tem alterações não salvas. Sair deste post?');
 }
+window.editorCanLeave = confirmLeave;
+window.addEventListener('editor-notice', (event) => notice(event.detail, true));
 
 function populate(post, preferredMode = 'visual') {
   current = post;
@@ -262,14 +264,22 @@ async function applyFolder(config) {
 }
 
 async function chooseFolder() {
-  if (!confirmLeave()) return;
-  try { await applyFolder(await request('/api/folder/pick', { method: 'POST' })); }
+  if (!await confirmLeave()) return;
+  try {
+    if (window.editorDesktop) {
+      const path = await window.desktopPickFolder();
+      if (!path) return;
+      await applyFolder(await request('/api/folder', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ folder: path }),
+      }));
+    } else await applyFolder(await request('/api/folder/pick', { method: 'POST' }));
+  }
   catch (error) { notice(error.message, true); }
 }
 
 async function manualFolder() {
-  if (!confirmLeave()) return;
-  const path = window.prompt('Caminho completo da pasta dos posts', folder || '');
+  if (!await confirmLeave()) return;
+  const path = await window.editorDialogs.prompt('Caminho completo da pasta dos posts', folder || '');
   if (path === null) return;
   try {
     await applyFolder(await request('/api/folder', {
@@ -279,14 +289,14 @@ async function manualFolder() {
 }
 
 async function openPost(id) {
-  if (current?.id === id || !confirmLeave()) return;
+  if (current?.id === id || !await confirmLeave()) return;
   try { populate(await request(`/api/posts/${encodeURIComponent(id)}`)); }
   catch (error) { notice(error.message, true); }
 }
 
-function newPost() {
+async function newPost() {
   if (!folder) { notice('Escolha a pasta dos posts primeiro.', true); return; }
-  if (!confirmLeave()) return;
+  if (!await confirmLeave()) return;
   populate({ id: '', title: '', description: '', pubDate: new Date().toLocaleDateString('sv-SE'), tags: [], heroImage: '', hidden: true, body: '', revision: '' });
   els.title.focus();
 }
@@ -354,11 +364,16 @@ async function savePost() {
   }
 }
 
-function format(action) {
+async function format(action) {
   els.visual.focus();
   if (action === 'link') {
-    const url = window.prompt('URL do link');
-    if (url) document.execCommand('createLink', false, url);
+    const selection = window.getSelection();
+    const range = selection?.rangeCount ? selection.getRangeAt(0).cloneRange() : null;
+    const url = await window.editorDialogs.prompt('URL do link');
+    if (!url) return;
+    els.visual.focus();
+    if (range) { selection.removeAllRanges(); selection.addRange(range); }
+    document.execCommand('createLink', false, url);
   } else if (action === 'h2' || action === 'h3') document.execCommand('formatBlock', false, action);
   else if (action === 'quote') document.execCommand('formatBlock', false, 'blockquote');
   else if (action === 'ul') document.execCommand('insertUnorderedList');
@@ -496,7 +511,7 @@ document.addEventListener('keydown', (event) => {
     els.search.select();
   }
 });
-window.addEventListener('beforeunload', (event) => { if (dirty) { event.preventDefault(); event.returnValue = ''; } });
+window.addEventListener('beforeunload', (event) => { if (!window.editorDesktop && !window.editorAllowUnload && dirty) { event.preventDefault(); event.returnValue = ''; } });
 window.addEventListener('pagehide', () => {
   if (!navigator.sendBeacon('/api/session/close', sessionId)) {
     fetch('/api/session/close', { method: 'POST', body: sessionId, keepalive: true }).catch(() => {});

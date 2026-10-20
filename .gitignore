@@ -1,7 +1,13 @@
 node_modules/
 
 /MTH-Editor.exe
+/MTH-Editor
 /launcher/MTH-Editor-Server.exe
+/launcher/server.bin
+/launcher/server.bin.exe
+/launcher/*.syso
+/Typewriter.exe
+/Typewriter
 /editor-settings.json
 .env
 .env.*

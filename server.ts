@@ -9,7 +9,10 @@ import photoHtml from './photo.html' with { type: 'text' };
 import photoScript from './photo.js' with { type: 'text' };
 import photoStyles from './photo.css' with { type: 'text' };
 import photoExif from './photo-exif.js' with { type: 'text' };
+import dialogsScript from './dialogs.js' with { type: 'text' };
 import { savePhoto } from './photos';
+import { listPhotos, readPhoto, resolvePhotoImage, updatePhoto } from './photo-library';
+import { thumbnailResponse } from './thumbnails';
 import { resolvePostImage } from './post-image';
 
 const editorDirArg = process.argv.indexOf('--editor-dir');
@@ -41,6 +44,7 @@ function imageProjectRoot() {
   return resolve(candidate, 'src', 'content', 'blog').toLowerCase() === postsDir.toLowerCase() ? candidate : null;
 }
 const host = '127.0.0.1';
+const desktopMode = process.argv.includes('--desktop');
 const preferredPort = Number(process.env.EDITOR_PORT || 4177);
 let activePort = preferredPort;
 const startedAt = Date.now();
@@ -50,7 +54,7 @@ let stopTimer: ReturnType<typeof setTimeout> | undefined;
 let server: ReturnType<typeof Bun.serve>;
 
 function scheduleStop() {
-  if (!Bun.isStandaloneExecutable || !hadClient || clients.size > 0) return;
+  if (desktopMode || !Bun.isStandaloneExecutable || !hadClient || clients.size > 0) return;
   if (stopTimer) clearTimeout(stopTimer);
   stopTimer = setTimeout(() => {
     if (clients.size === 0) {
@@ -288,7 +292,30 @@ const options = {
         const length = Number(request.headers.get('content-length'));
         if (length > 60_000_000) throw new Error('A imagem precisa ter até 50 MB.');
         const result = await savePhoto(photosDir, await request.formData());
-        return json(result, 201);
+        return json({ ...result, photo: await readPhoto(photosDir, result.markdownName) }, 201);
+      }
+      if (url.pathname === '/api/photos' && request.method === 'GET') {
+        return json(photosDir ? await listPhotos(photosDir) : { photos: [], errors: [] });
+      }
+      const photoMatch = url.pathname.match(/^\/api\/photos\/([^/]+)(\/(?:image|thumbnail))?$/);
+      if (photoMatch) {
+        if (!photosDir) throw new Error('Escolha a pasta da galeria.');
+        const id = decodeURIComponent(photoMatch[1]);
+        if (photoMatch[2] && (request.method === 'GET' || request.method === 'HEAD')) {
+          const { path, type } = await resolvePhotoImage(photosDir, id);
+          if (photoMatch[2] === '/thumbnail') return await thumbnailResponse(path, request);
+          return new Response(request.method === 'HEAD' ? null : Bun.file(path), {
+            headers: { 'Content-Type': type, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' },
+          });
+        }
+        if (!photoMatch[2] && request.method === 'GET') return json(await readPhoto(photosDir, id));
+        if (!photoMatch[2] && request.method === 'PUT') {
+          if (!request.headers.get('content-type')?.startsWith('application/json')) throw new Error('Envie os dados em JSON.');
+          const body = await request.text();
+          if (body.length > 200_000) throw new Error('Os dados da foto excedem o tamanho permitido.');
+          return json(await updatePhoto(photosDir, id, JSON.parse(body)));
+        }
+        return json({ error: 'Operação não permitida.' }, 405);
       }
       if (url.pathname === '/api/post-image' && (request.method === 'GET' || request.method === 'HEAD')) {
         try {
@@ -336,8 +363,9 @@ const options = {
       }
       if (request.method !== 'GET') return json({ error: 'Operação não permitida.' }, 405);
       if (url.pathname === '/') return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
-      if (url.pathname === '/photos') return new Response(photoHtml, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+      if (url.pathname === '/photos' || url.pathname === '/img') return new Response(photoHtml, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
       if (url.pathname === '/app.js') return new Response(script, { headers: { 'Content-Type': 'text/javascript; charset=utf-8' } });
+      if (url.pathname === '/dialogs.js') return new Response(dialogsScript, { headers: { 'Content-Type': 'text/javascript; charset=utf-8' } });
       if (url.pathname === '/style.css') return new Response(styles, { headers: { 'Content-Type': 'text/css; charset=utf-8' } });
       if (url.pathname === '/photo.js') return new Response(photoScript, { headers: { 'Content-Type': 'text/javascript; charset=utf-8' } });
       if (url.pathname === '/photo.css') return new Response(photoStyles, { headers: { 'Content-Type': 'text/css; charset=utf-8' } });
@@ -345,7 +373,8 @@ const options = {
       return new Response('Não encontrado', { status: 404 });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erro inesperado.';
-      return json({ error: message }, message.includes('ENOENT') ? 404 : 400);
+      const status = error instanceof Error && 'status' in error && error.status === 409 ? 409 : message.includes('ENOENT') ? 404 : 400;
+      return json({ error: message }, status);
     }
   },
 } satisfies Parameters<typeof Bun.serve>[0];
@@ -358,6 +387,7 @@ try {
 activePort = server.port;
 
 console.log(`Editor local: http://${server.hostname}:${server.port}`);
+if (desktopMode) console.log(`MTH_EDITOR_READY ${JSON.stringify({ url: `http://${host}:${server.port}` })}`);
 if (process.argv.includes('--lifecycle-test')) {
   const first = '11111111-1111-4111-8111-111111111111';
   const second = '22222222-2222-4222-8222-222222222222';
@@ -397,6 +427,7 @@ if (process.argv.includes('--self-test')) {
   const imageFolder = await mkdtemp(join(tmpdir(), 'mth-editor-image-test-'));
   let imageServed = false;
   let imageRestricted = false;
+  let photoApi = false;
   try {
     postsDir = imageFolder;
     await writeFile(join(imageFolder, 'teste.png'), Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg==', 'base64'));
@@ -404,8 +435,25 @@ if (process.argv.includes('--self-test')) {
     imageServed = imageResponse.ok && imageResponse.headers.get('content-type') === 'image/png' && (await imageResponse.arrayBuffer()).byteLength > 0;
     const outsideResponse = await options.fetch(new Request(`http://${host}:${server.port}/api/post-image?src=..%2Ffora.png`));
     imageRestricted = outsideResponse.status === 400;
+    photosDir = imageFolder;
+    await writeFile(join(imageFolder, 'foto.md'), '---\nimage: "./teste.png"\nalt: "Teste"\ncaption: "Legenda"\ndate: 2026-10-20\n---\n');
+    const photoList = await (await options.fetch(new Request(`http://${host}:${server.port}/api/photos`))).json();
+    const photo = await (await options.fetch(new Request(`http://${host}:${server.port}/api/photos/foto.md`))).json();
+    const photoImage = await options.fetch(new Request(`http://${host}:${server.port}/api/photos/foto.md/image`));
+    const editRequest = () => new Request(`http://${host}:${server.port}/api/photos/foto.md`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...photo, caption: 'Legenda editada', tags: ['teste'], location: { name: 'Lugar', latitude: 0, longitude: 0 } }),
+    });
+    const editedResponse = await options.fetch(editRequest());
+    const edited = await editedResponse.json();
+    const conflict = await options.fetch(editRequest());
+    const alias = await options.fetch(new Request(`http://${host}:${server.port}/img`));
+    photoApi = photoList.photos.length === 1 && photoList.errors.length === 0 && photoImage.ok &&
+      (await photoImage.arrayBuffer()).byteLength > 0 && editedResponse.ok && edited.caption === 'Legenda editada' &&
+      edited.location?.latitude === 0 && conflict.status === 409 && alias.ok;
   } finally {
     postsDir = null;
+    photosDir = null;
     if (!imageFolder.startsWith(`${tmpdir()}\\`) && !imageFolder.startsWith(`${tmpdir()}/`)) throw new Error('Pasta de teste fora da área temporária.');
     await rm(imageFolder, { recursive: true, force: true });
   }
@@ -419,6 +467,7 @@ if (process.argv.includes('--self-test')) {
     session: opened && !clients.has(sessionId),
     markdown: roundTrip.title === 'Título de teste' && roundTrip.tags[1] === 'música',
     image: imageServed && imageRestricted,
+    photoApi,
   };
   const failed = Object.entries(checks).filter(([, passed]) => !passed).map(([name]) => name);
   if (failed.length) throw new Error(`Falha na verificação do editor: ${failed.join(', ')}.`);
@@ -426,7 +475,7 @@ if (process.argv.includes('--self-test')) {
   server.stop();
   process.exit(0);
 }
-if (Bun.isStandaloneExecutable && !process.argv.includes('--no-browser')) {
+if (Bun.isStandaloneExecutable && !desktopMode && !process.argv.includes('--no-browser')) {
   const url = `http://${host}:${server.port}`;
   try {
     Bun.spawn(['rundll32.exe', 'url.dll,FileProtocolHandler', url], { windowsHide: true, stdout: 'ignore', stderr: 'ignore' }).unref();
@@ -434,7 +483,7 @@ if (Bun.isStandaloneExecutable && !process.argv.includes('--no-browser')) {
     console.error('Não foi possível abrir o navegador:', error);
   }
 }
-if (Bun.isStandaloneExecutable) setInterval(() => {
+if (Bun.isStandaloneExecutable && !desktopMode) setInterval(() => {
   const now = Date.now();
   for (const [id, seen] of clients) if (now - seen > 30 * 60_000) clients.delete(id);
   if (clients.size === 0) {
