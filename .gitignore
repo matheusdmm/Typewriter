@@ -1,4 +1,5 @@
 node_modules/
+/dist/
 
 /MTH-Editor.exe
 /MTH-Editor
