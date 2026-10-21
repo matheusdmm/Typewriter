@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Configurações - Typewriter</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/themes.css" />
+    <script src="/preferences.js" defer></script>
+    <script src="/sidebar.js" defer></script>
+    <script src="/dialogs.js" defer></script>
+    <script src="/settings.js" defer></script>
+</head>
+
+<body>
+    <div class="app-shell">
+        <aside id="app-sidebar" class="sidebar settings-sidebar">
+            <div class="sidebar-head">
+                <a class="brand" href="/" aria-label="Editor de posts">M</a>
+                <div class="brand-copy"><strong>Matheus</strong><small>Editor de posts</small>
+                    <div class="blog-addresses" aria-label="Endereços do blog" hidden></div>
+                </div>
+            </div>
+            <nav class="section-nav" aria-label="Seções"><a href="/">Posts</a><a href="/photos">Fotos</a><a
+                    class="active" href="/settings" aria-current="page">Configurações</a></nav>
+            <p class="settings-local-note">Suas preferências ficam salvas neste computador.</p>
+        </aside>
+        <main class="workspace">
+            <header class="topbar">
+                <div class="mobile-brand">Configurações</div>
+                <div class="crumb"><span>Configurações</span></div>
+                <div class="top-actions">
+                    <span id="settings-state" class="save-state" role="status" aria-live="polite">Carregando…</span>
+                    <button id="settings-save" class="save-button" type="submit" form="settings-form" disabled>Salvar
+                        configurações</button>
+                </div>
+            </header>
+            <form id="settings-form" class="settings-content">
+                <div class="settings-heading">
+                    <h1>Configurações</h1>
+                    <p>Personalize o editor e os endereços do seu blog.</p>
+                </div>
+                <fieldset id="settings-fields" disabled>
+                    <section class="settings-section" aria-labelledby="appearance-title">
+                        <h2 id="appearance-title">Aparência</h2>
+                        <label class="field"><span>Tema</span><select id="settings-theme" name="theme"
+                                aria-describedby="theme-help">
+                                <option value="light">Claro</option>
+                                <option value="dark">Escuro</option>
+                                <option value="system">Seguir o sistema</option>
+                                <option value="brutalist-light">Brutalista</option>
+                            </select><small id="theme-help">A prévia é aplicada ao selecionar. Salve para manter o
+                                tema.</small></label>
+                    </section>
+                    <section class="settings-section" aria-labelledby="profile-title">
+                        <h2 id="profile-title">Perfil</h2>
+                        <label class="field"><span>Nome do usuário</span><input id="settings-username" name="username"
+                                type="text" maxlength="80" autocomplete="nickname" required
+                                aria-describedby="username-help" /><small id="username-help">Exibido na barra lateral do
+                                editor.</small></label>
+                    </section>
+                    <section class="settings-section" aria-labelledby="blog-title">
+                        <h2 id="blog-title">Endereços do blog</h2>
+                        <p>Usados para abrir os posts em cada ambiente. Deixe em branco para ocultar o atalho.</p>
+                        <label class="field"><span>Produção</span><input id="settings-production" name="productionUrl"
+                                type="url" inputmode="url" spellcheck="false" placeholder="https://seublog.com"
+                                aria-describedby="production-help" /><small id="production-help">Endereço do blog
+                                publicado.</small></label>
+                        <label class="field"><span>Desenvolvimento</span><input id="settings-development"
+                                name="developmentUrl" type="url" inputmode="url" spellcheck="false"
+                                placeholder="http://localhost:4321" aria-describedby="development-help" /><small
+                                id="development-help">Endereço da prévia local do blog.</small></label>
+                    </section>
+                    <div class="settings-actions"><button id="settings-discard" type="button">Descartar
+                            alterações</button></div>
+                </fieldset>
+                <p id="settings-error" class="settings-error" role="alert" hidden></p>
+            </form>
+        </main>
+    </div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+
+</html>

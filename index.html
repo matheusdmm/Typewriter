@@ -8,17 +8,20 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/themes.css" />
+    <script src="/preferences.js" defer></script>
+    <script src="/sidebar.js" defer></script>
     <script src="/dialogs.js" defer></script>
     <script src="/app.js" defer></script>
   </head>
   <body>
     <div class="app-shell">
-      <aside class="sidebar">
+      <aside id="app-sidebar" class="sidebar">
         <div class="sidebar-head">
           <a class="brand" href="/" aria-label="Editor de posts">M</a>
-          <div class="brand-copy"><strong>Matheus</strong><small>Editor de posts</small></div>
+          <div class="brand-copy"><strong>Matheus</strong><small>Editor de posts</small><div class="blog-addresses" aria-label="Endereços do blog" hidden></div></div>
         </div>
-        <nav class="section-nav" aria-label="Seções"><a class="active" href="/" aria-current="page">Posts</a><a href="/photos">Fotos</a></nav>
+        <nav class="section-nav" aria-label="Seções"><a class="active" href="/" aria-current="page">Posts</a><a href="/photos">Fotos</a><a href="/settings">Configurações</a></nav>
         <button id="new-post" class="new-button" type="button">Novo post</button>
         <label class="search-wrap"><span>Buscar posts</span><input id="search" type="search" placeholder="Título ou tag" /></label>
         <div class="list-head"><span>POSTS</span><span id="post-count">0 posts</span></div>
@@ -53,7 +56,7 @@
         <div id="editor-view" class="editor-view" hidden>
           <div class="editor-grid">
             <section class="writing-area" aria-label="Escrita do post">
-              <div class="writing-topline"><span id="post-type">RASCUNHO</span><a id="view-post" href="#" target="_blank" rel="noopener" hidden>Abrir no blog</a></div>
+              <div class="writing-topline"><span id="post-type">RASCUNHO</span><div class="post-links"><a id="view-development" href="#" target="_blank" rel="noopener" hidden>Abrir em desenvolvimento</a><a id="view-post" href="#" target="_blank" rel="noopener" hidden>Abrir em produção</a></div></div>
               <input id="title" class="title-input" type="text" placeholder="Título do post" maxlength="200" aria-label="Título" />
               <textarea id="description" class="description-input" rows="2" placeholder="Descrição curta do post" aria-label="Descrição"></textarea>
               <div class="writing-divider"></div>

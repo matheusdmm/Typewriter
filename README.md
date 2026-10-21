@@ -19,6 +19,10 @@ Distribuições com apenas WebKitGTK 4.1 não são compatíveis com o pacote Lin
 
 No editor, clique em **Escolher pasta** para abrir seus posts. Em **Fotos**, selecione a pasta `src/content/img` do blog para importar ou editar fotos.
 
+Em **Configurações**, escolha o tema (claro, escuro, do sistema ou brutalista claro), defina o nome exibido na barra lateral e informe os endereços de produção e desenvolvimento do blog. Salve para manter as preferências neste computador. Os endereços alimentam os atalhos de abrir o post em cada ambiente; deixe um endereço vazio para ocultar seu atalho. O editor acrescenta `/blog/nome-do-post/` ao endereço informado.
+
+Os endereços configurados também aparecem como links abaixo do nome do usuário, identificados por ambiente. Arraste a borda direita da barra lateral para ajustar sua largura; o tamanho fica salvo entre sessões. Com a borda em foco, use as setas esquerda/direita (Shift para passos maiores). Clique duas vezes na borda ou pressione Home para restaurar a largura padrão.
+
 ## Desenvolver e compilar
 
 Instale Bun, Go 1.25+ e as ferramentas do seu sistema:

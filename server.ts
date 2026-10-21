@@ -10,6 +10,12 @@ import photoScript from './photo.js' with { type: 'text' };
 import photoStyles from './photo.css' with { type: 'text' };
 import photoExif from './photo-exif.js' with { type: 'text' };
 import dialogsScript from './dialogs.js' with { type: 'text' };
+import settingsHtml from './settings.html' with { type: 'text' };
+import settingsScript from './settings.js' with { type: 'text' };
+import preferencesScript from './preferences.js' with { type: 'text' };
+import sidebarScript from './sidebar.js' with { type: 'text' };
+import themeStyles from './themes.css' with { type: 'text' };
+import { openSettings, validateLayout, validatePreferences } from './settings';
 import { savePhoto } from './photos';
 import { listPhotos, readPhoto, resolvePhotoImage, updatePhoto } from './photo-library';
 import { thumbnailResponse } from './thumbnails';
@@ -36,6 +42,7 @@ const projectRoot = await (async () => {
 const defaultPostsDir = projectRoot ? join(projectRoot, 'src', 'content', 'blog') : null;
 const defaultPhotosDir = projectRoot ? join(projectRoot, 'src', 'content', 'img') : null;
 const settingsPath = join(editorDir, 'editor-settings.json');
+const settingsStore = await openSettings(settingsPath);
 let postsDir: string | null = null;
 let photosDir: string | null = null;
 function imageProjectRoot() {
@@ -68,24 +75,20 @@ async function isDirectory(path: string): Promise<boolean> {
   try { return (await stat(path)).isDirectory(); } catch { return false; }
 }
 
-try {
-  const settings = JSON.parse(await readFile(settingsPath, 'utf8'));
+{
+  const settings = settingsStore.value;
   if (typeof settings.postsDir === 'string' && await isDirectory(settings.postsDir)) postsDir = resolve(settings.postsDir);
   if (typeof settings.photosDir === 'string' && await isDirectory(settings.photosDir)) photosDir = resolve(settings.photosDir);
-} catch { /* Ainda não há uma pasta salva. */ }
+}
 if (!postsDir && defaultPostsDir) postsDir = defaultPostsDir;
 if (!photosDir && defaultPhotosDir) photosDir = defaultPhotosDir;
-
-async function saveSettings() {
-  await writeFile(settingsPath, JSON.stringify({ postsDir, photosDir }, null, 2));
-}
 
 async function setPostsDir(folder: string) {
   const path = folder.trim();
   if (!path || !isAbsolute(path) || !await isDirectory(path)) throw new Error('Selecione uma pasta válida.');
   const selected = resolve(path);
+  await settingsStore.update({ postsDir: selected });
   postsDir = selected;
-  await saveSettings();
   return selected;
 }
 
@@ -93,8 +96,8 @@ async function setPhotosDir(folder: string) {
   const path = folder.trim();
   if (!path || !isAbsolute(path) || !await isDirectory(path)) throw new Error('Selecione uma pasta válida.');
   const selected = resolve(path);
+  await settingsStore.update({ photosDir: selected });
   photosDir = selected;
-  await saveSettings();
   return selected;
 }
 
@@ -240,6 +243,12 @@ async function readBody(request: Request) {
   return validate(JSON.parse(body));
 }
 
+function pageResponse(content: string) {
+  return new Response(content.replace('<html lang="pt-BR">', `<html lang="pt-BR" data-theme="${settingsStore.preferences.theme}" style="--sidebar-width:${settingsStore.layout.sidebarWidth}px">`), {
+    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
+  });
+}
+
 const options = {
   hostname: host,
   port: preferredPort,
@@ -248,6 +257,29 @@ const options = {
     const origin = request.headers.get('origin');
     if (origin && origin !== `http://${host}:${activePort}`) return json({ error: 'Origem não permitida.' }, 403);
     try {
+      if (url.pathname === '/api/layout') {
+        if (request.method === 'GET') return json(settingsStore.layout);
+        if (request.method === 'PUT') {
+          if (!request.headers.get('content-type')?.startsWith('application/json')) throw new Error('Envie os dados em JSON.');
+          const body = await request.text();
+          if (body.length > 1_000) throw new Error('Os dados de exibição excedem o tamanho permitido.');
+          await settingsStore.update(validateLayout(JSON.parse(body)));
+          return json(settingsStore.layout);
+        }
+        return json({ error: 'Operação não permitida.' }, 405);
+      }
+      if (url.pathname === '/api/settings') {
+        if (request.method === 'GET') return json(settingsStore.preferences);
+        if (request.method === 'PUT') {
+          if (!request.headers.get('content-type')?.startsWith('application/json')) throw new Error('Envie os dados em JSON.');
+          const body = await request.text();
+          if (body.length > 16_000) throw new Error('As configurações excedem o tamanho permitido.');
+          const preferences = validatePreferences(JSON.parse(body));
+          await settingsStore.update(preferences);
+          return json(settingsStore.preferences);
+        }
+        return json({ error: 'Operação não permitida.' }, 405);
+      }
       const session = url.pathname.match(/^\/api\/session\/(open|ping|close)$/);
       if (session && request.method === 'POST') {
         const id = (await request.text()).trim();
@@ -362,8 +394,13 @@ const options = {
         }
       }
       if (request.method !== 'GET') return json({ error: 'Operação não permitida.' }, 405);
-      if (url.pathname === '/') return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
-      if (url.pathname === '/photos' || url.pathname === '/img') return new Response(photoHtml, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+      if (url.pathname === '/') return pageResponse(html);
+      if (url.pathname === '/photos' || url.pathname === '/img') return pageResponse(photoHtml);
+      if (url.pathname === '/settings') return pageResponse(settingsHtml);
+      if (url.pathname === '/settings.js') return new Response(settingsScript, { headers: { 'Content-Type': 'text/javascript; charset=utf-8' } });
+      if (url.pathname === '/preferences.js') return new Response(preferencesScript, { headers: { 'Content-Type': 'text/javascript; charset=utf-8' } });
+      if (url.pathname === '/sidebar.js') return new Response(sidebarScript, { headers: { 'Content-Type': 'text/javascript; charset=utf-8' } });
+      if (url.pathname === '/themes.css') return new Response(themeStyles, { headers: { 'Content-Type': 'text/css; charset=utf-8' } });
       if (url.pathname === '/app.js') return new Response(script, { headers: { 'Content-Type': 'text/javascript; charset=utf-8' } });
       if (url.pathname === '/dialogs.js') return new Response(dialogsScript, { headers: { 'Content-Type': 'text/javascript; charset=utf-8' } });
       if (url.pathname === '/style.css') return new Response(styles, { headers: { 'Content-Type': 'text/css; charset=utf-8' } });

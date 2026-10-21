@@ -9,17 +9,20 @@
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/style.css" />
     <link rel="stylesheet" href="/photo.css" />
+    <link rel="stylesheet" href="/themes.css" />
+    <script src="/preferences.js" defer></script>
+    <script src="/sidebar.js" defer></script>
     <script src="/dialogs.js" defer></script>
     <script type="module" src="/photo.js"></script>
   </head>
   <body>
     <div class="app-shell">
-      <aside class="sidebar photo-sidebar">
+      <aside id="app-sidebar" class="sidebar photo-sidebar">
         <div class="sidebar-head">
           <a class="brand" href="/" aria-label="Editor">M</a>
-          <div class="brand-copy"><strong>Matheus</strong><small>Editor de posts</small></div>
+          <div class="brand-copy"><strong>Matheus</strong><small>Editor de posts</small><div class="blog-addresses" aria-label="Endereços do blog" hidden></div></div>
         </div>
-        <nav class="section-nav" aria-label="Seções"><a href="/">Posts</a><a class="active" href="/photos" aria-current="page">Fotos</a></nav>
+        <nav class="section-nav" aria-label="Seções"><a href="/">Posts</a><a class="active" href="/photos" aria-current="page">Fotos</a><a href="/settings">Configurações</a></nav>
         <button id="photo-new" class="new-button" type="button">+ Nova foto</button>
         <label class="search-wrap"><span>Buscar fotos</span><input id="photo-search" type="search" placeholder="Título, tag ou lugar" /></label>
         <div class="list-head"><span>GALERIA</span><span id="photo-count">0 fotos</span></div>

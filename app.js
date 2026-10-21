@@ -9,7 +9,7 @@ const els = {
   imageConfirm: $('#image-confirm'), imageCancel: $('#image-cancel'),
   visualMode: $('#visual-mode'), markdownMode: $('#markdown-mode'), save: $('#save-post'),
   state: $('#save-state'), crumb: $('#crumb-title'), type: $('#post-type'), file: $('#file-name'),
-  viewPost: $('#view-post'), toast: $('#toast'), wordCount: $('#word-count'),
+  viewPost: $('#view-post'), viewDevelopment: $('#view-development'), toast: $('#toast'), wordCount: $('#word-count'),
   folderPath: $('#folder-path'), chooseFolder: $('#choose-folder'), manualFolder: $('#manual-folder'),
   emptyTitle: $('#empty-title'), emptyText: $('#empty-text'), emptyNew: $('#empty-new'), emptyChoose: $('#empty-choose'),
 };
@@ -27,7 +27,6 @@ let bodyEditVersion = 0;
 let saving = false;
 let toastTimer;
 let folder = null;
-let isProjectFolder = false;
 let imageRange = null;
 let markdownImageRange = null;
 const sessionId = crypto.randomUUID();
@@ -173,7 +172,6 @@ function renderList() {
 
 function updateFolder(config) {
   folder = config.folder || null;
-  isProjectFolder = config.isProjectFolder === true;
   els.folderPath.textContent = folder || 'Nenhuma pasta selecionada';
   els.folderPath.title = folder || '';
   $('#new-post').disabled = !folder;
@@ -237,11 +235,21 @@ function populate(post, preferredMode = 'visual') {
   els.crumb.textContent = post.title || 'Novo post';
   els.type.textContent = post.hidden ? 'RASCUNHO' : 'PUBLICADO';
   els.file.textContent = post.id || 'Ainda não criado';
-  els.viewPost.hidden = !post.id || post.hidden || !isProjectFolder;
-  if (post.id) els.viewPost.href = `http://localhost:4321/blog/${encodeURIComponent(post.id.replace(/\.md$/, ''))}/`;
+  updatePostLinks();
   updateWordCount();
   renderList();
 }
+
+function updatePostLinks() {
+  for (const [link, environment] of [[els.viewPost, 'production'], [els.viewDevelopment, 'development']]) {
+    const url = window.editorPreferences.postUrl(current?.id, environment);
+    link.hidden = !url || (environment === 'production' && els.hidden.checked);
+    if (url) link.href = url;
+    else link.removeAttribute('href');
+  }
+}
+window.addEventListener('preferences-change', updatePostLinks);
+window.editorPreferences.ready.catch((error) => notice(error.message, true));
 
 async function request(path, options) {
   const response = await fetch(path, options);
@@ -348,8 +356,7 @@ async function savePost() {
     } else {
       if (bodyEditVersion === submittedBodyVersion) bodyDirty = false;
       els.file.textContent = saved.id;
-      els.viewPost.hidden = saved.hidden || !isProjectFolder;
-      els.viewPost.href = `http://localhost:4321/blog/${encodeURIComponent(saved.id.replace(/\.md$/, ''))}/`;
+      updatePostLinks();
       els.state.textContent = 'Alterações não salvas';
       els.state.classList.add('changed');
       renderList();
@@ -501,7 +508,7 @@ els.imageDialog.addEventListener('close', () => { imageRange = null; markdownIma
 els.visual.addEventListener('input', () => markDirty(true));
 els.source.addEventListener('input', () => markDirty(true));
 for (const input of [els.title, els.description, els.date, els.tags, els.image, els.hidden]) {
-  input.addEventListener('input', () => { markDirty(); els.crumb.textContent = els.title.value || 'Novo post'; els.type.textContent = els.hidden.checked ? 'RASCUNHO' : 'PUBLICADO'; });
+  input.addEventListener('input', () => { markDirty(); els.crumb.textContent = els.title.value || 'Novo post'; els.type.textContent = els.hidden.checked ? 'RASCUNHO' : 'PUBLICADO'; updatePostLinks(); });
 }
 document.addEventListener('keydown', (event) => {
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') { event.preventDefault(); savePost(); }
